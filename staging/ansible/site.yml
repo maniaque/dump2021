@@ -1,0 +1,70 @@
+---
+- name: app setup
+  hosts: all
+  gather_facts: no
+  become: yes
+
+  vars:
+    app_name: pytime
+    version: v1
+    image: "maniaque/{{ app_name }}:{{ version }}"
+
+  tasks:
+    # Установить два пакета по списку
+    - name: install packages
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop: 
+        - docker.io
+        - python3-pip
+
+    # Установить модуль для ansible, чтобы управлять docker
+    - name: install pip for docker
+      pip:
+        name: docker
+
+    # Чуть изменить конфиг docker
+    # Если файл изменялся - вызвать handler с именем restart docker (ниже)
+    - name: configure docker
+      copy:
+        content: '{ "userland-proxy": false }'
+        dest: /etc/docker/daemon.json
+      notify: restart docker
+
+    # Снести все контейнеры
+    - name: create /tmp/purge
+      copy:
+        content: |
+          #!/bin/bash
+          for c in $(docker ps -a -q); do
+            docker rm -f $c
+          done
+
+          for i in $(docker images -q); do
+            docker rmi -f $i
+          done
+        dest: /tmp/purge
+        mode: 0755
+
+    - name: remove all containers and images
+      shell: /tmp/purge
+      changed_when: false
+
+    # Развернуть сам контейнер
+    - name: deploy container
+      docker_container:
+        name: "{{ app_name }}-{{ version }}"
+        image: "{{ image }}"
+        restart_policy: unless-stopped
+        container_default_behavior: compatibility
+        tls_hostname: localhost
+        published_ports:
+          - 80:80
+
+  handlers:
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted
