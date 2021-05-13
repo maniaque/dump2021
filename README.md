@@ -9,3 +9,4 @@
 * pytime
 * staging
 * k8s-manual
+* k8s-chart
