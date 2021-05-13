@@ -1,0 +1,8 @@
+ingress: true
+image: maniaque/{{ .Chart.Name }}:{{ .Chart.AppVersion }}
+
+container:
+  port: 80
+
+service:
+  port: 80

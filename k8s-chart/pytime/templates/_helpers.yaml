@@ -1,0 +1,12 @@
+{{- define "ingress" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Chart.Name }}-{{ .Chart.Version }}-ingress
+spec:
+  defaultBackend:
+    service:
+      name: {{ .Chart.Name }}-{{ .Chart.Version }}-service
+      port:
+        number: {{ .Values.service.port }}
+{{- end }}
